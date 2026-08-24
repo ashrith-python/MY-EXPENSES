@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="My Money">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>My Money Tracker</title>
+<style>
+:root{
+  --bg:#f5f5f5; --card:#fff; --text:#171717; --muted:#777;
+  --border:#e6e6e6; --green:#16834a; --red:#c93636; --dark:#171717;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Arial,Helvetica,sans-serif;color:var(--text)}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{max-width:560px;margin:auto;padding:22px 16px 50px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px}
+h1{font-size:27px;margin:0 0 5px}
+.subtitle{margin:0;color:var(--muted);font-size:14px}
+.icon-btn{border:1px solid var(--border);background:var(--card);width:40px;height:40px;border-radius:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:16px}
+.balance-label{font-size:14px;color:var(--muted)}
+.balance{font-size:40px;font-weight:700;margin:7px 0 22px}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.summary-box{border-top:1px solid var(--border);padding-top:13px}
+.summary-box span{display:block;color:var(--muted);font-size:13px;margin-bottom:5px}
+.summary-box strong{font-size:18px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+.action{padding:15px;border:0;border-radius:14px;font-weight:600}
+.credit{background:#171717;color:#fff}.expense{background:#e9e9e9;color:#171717}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.section-title h2{font-size:19px;margin:0}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:15px}
+.month-nav button{border:1px solid var(--border);background:#fff;width:38px;height:38px;border-radius:10px}
+.month-name{font-weight:700;font-size:17px}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.weekday{text-align:center;color:#999;font-size:11px;padding:5px 0}
+.day{min-height:42px;border:1px solid transparent;background:#fafafa;border-radius:10px;padding:5px;text-align:center;position:relative}
+.day.empty{background:transparent}
+.day:not(.empty){cursor:pointer}
+.day:hover:not(.empty){border-color:#ccc}
+.day .num{font-size:13px}
+.dot{width:5px;height:5px;border-radius:50%;background:#c93636;position:absolute;bottom:5px;left:50%;transform:translateX(-50%)}
+.dot.credit-dot{background:#16834a}
+.month-note{margin-top:12px;color:var(--muted);font-size:12px}
+.month-card{cursor:pointer}
+.month-card:hover{border-color:#ccc}
+.month-card .open{font-size:13px;color:var(--muted)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;padding:18px;overflow:auto}
+.modal-bg.show{display:flex;align-items:flex-end;justify-content:center}
+.modal{background:#fff;width:min(560px,100%);border-radius:20px;padding:22px;max-height:90vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.modal-head h2{margin:0;font-size:21px}
+.close{border:0;background:#eee;border-radius:10px;width:36px;height:36px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.field input{width:100%;padding:13px;border:1px solid #ddd;border-radius:11px;outline:none}
+.primary{width:100%;padding:14px;border:0;border-radius:12px;background:#171717;color:white;font-weight:700}
+.detail-total{background:#f7f7f7;border-radius:13px;padding:14px;margin-bottom:14px}
+.txn{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)}
+.txn:last-child{border-bottom:0}
+.txn-left{display:flex;gap:10px;align-items:flex-start}
+.badge{font-size:11px;padding:5px 7px;border-radius:7px}
+.badge.expense{background:#fdecec;color:var(--red)}
+.badge.credit{background:#eaf7ef;color:var(--green)}
+.txn-reason{font-weight:600;font-size:14px}
+.txn-time{font-size:11px;color:#999;margin-top:3px}
+.amount-expense{color:var(--red);font-weight:700}
+.amount-credit{color:var(--green);font-weight:700}
+.empty{color:#999;text-align:center;padding:22px 5px;font-size:14px}
+.back{border:1px solid var(--border);background:white;border-radius:11px;padding:9px 12px;margin-bottom:14px}
+.month-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat{background:#f7f7f7;padding:13px;border-radius:13px}
+.stat span{display:block;font-size:12px;color:#888;margin-bottom:5px}
+.stat strong{font-size:17px}
+canvas{width:100%;height:220px;border:1px solid var(--border);border-radius:14px;background:#fff}
+.legend{display:flex;justify-content:space-between;color:#888;font-size:11px;margin-top:6px}
+.date-title{font-size:14px;color:#777;margin-bottom:10px}
+.delete{border:0;background:none;color:#aaa;font-size:12px;padding:0}
+.delete:hover{color:var(--red)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#171717;color:#fff;padding:11px 16px;border-radius:11px;font-size:13px;opacity:0;pointer-events:none;transition:.25s;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:400px){.app{padding:18px 12px}.balance{font-size:34px}.day{min-height:38px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1>My Money</h1><p class="subtitle">Personal expense tracker</p></div>
+  <div style="display:flex;gap:8px;align-items:center"><button class="icon-btn" id="installBtn" title="Install My Money" style="display:none">＋</button><button class="icon-btn" id="resetBtn" title="Reset all data">↺</button></div>
+</header>
+
+<section class="card">
+  <div class="balance-label">Available Balance</div>
+  <div class="balance" id="balance">₹0</div>
+  <div class="summary">
+    <div class="summary-box"><span>Total Amount Added</span><strong id="totalAdded">₹0</strong></div>
+    <div class="summary-box"><span>Total Spent</span><strong id="totalSpent">₹0</strong></div>
+  </div>
+</section>
+
+<div class="actions">
+  <button class="action credit" id="addCredit">＋ Add Credit</button>
+  <button class="action expense" id="addExpense">− Add Expense</button>
+</div>
+
+<section class="card month-card" id="calendarCard">
+  <div class="section-title"><h2>Calendar</h2><span class="open">Open month →</span></div>
+  <div class="month-nav">
+    <button id="prevMonth">‹</button><div class="month-name" id="homeMonth"></div><button id="nextMonth">›</button>
+  </div>
+  <div class="calendar" id="homeCalendar"></div>
+  <div class="month-note">Tap a date to see that day's transactions.</div>
+</section>
+</div>
+
+<div class="modal-bg" id="formModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="formTitle">Add Expense</h2><button class="close" data-close="formModal">×</button></div>
+    <form id="txnForm">
+      <div class="field"><label>Amount</label><input id="amount" type="number" min="0.01" step="0.01" required placeholder="e.g. 250"></div>
+      <div class="field"><label id="reasonLabel">What did you spend on?</label><input id="reason" maxlength="80" required placeholder="e.g. Lunch"></div>
+      <div class="field"><label>Date</label><input id="txnDate" type="date" required></div>
+      <button class="primary" type="submit">Save</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-bg" id="dateModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="dateModalTitle">Date</h2><button class="close" data-close="dateModal">×</button></div>
+    <div class="detail-total" id="dateTotal"></div>
+    <div id="dateTransactions"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="monthModal">
+  <div class="modal">
+    <div class="modal-head"><h2 id="monthModalTitle">Month</h2><button class="close" data-close="monthModal">×</button></div>
+    <div class="month-summary">
+      <div class="stat"><span>Total Added</span><strong id="monthAdded">₹0</strong></div>
+      <div class="stat"><span>Total Spent</span><strong id="monthSpent">₹0</strong></div>
+    </div>
+    <div class="month-nav">
+      <button id="monthPrev">‹</button><div class="month-name" id="monthModalName"></div><button id="monthNext">›</button>
+    </div>
+    <div class="calendar" id="monthCalendar"></div>
+    <h3 style="margin:22px 0 10px;font-size:17px">Daily Expenses</h3>
+    <canvas id="expenseChart" width="520" height="220"></canvas>
+    <div class="legend"><span>₹ spent per day</span><span>Tap a date for details</span></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = "my_money_tracker_v1";
+const START = new Date(2026,7,24); // Aug 24, 2026
+const END = new Date(2026,11,31);  // Dec 31, 2026
+
+let state = loadState();
+let homeMonth = new Date(2026,7,1);
+let modalMonth = new Date(2026,7,1);
+let formType = "expense";
+
+function loadState(){
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {transactions:[]}; }
+  catch(e){ return {transactions:[]}; }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function money(n){ return "₹" + Number(n||0).toLocaleString("en-IN",{maximumFractionDigits:2}); }
+function iso(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+function prettyDate(s){ return new Date(s+"T00:00:00").toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"}); }
+function monthLabel(d){ return d.toLocaleDateString("en-IN",{month:"long",year:"numeric"}); }
+function inRange(s){
+  const d=new Date(s+"T00:00:00"); return d>=START && d<=END;
+}
+function totals(){
+  let added=0, spent=0;
+  state.transactions.forEach(t=>t.type==="credit"?added+=t.amount:spent+=t.amount);
+  return {added,spent,balance:added-spent};
+}
+function renderHome(){
+  const t=totals();
+  document.getElementById("balance").textContent=money(t.balance);
+  document.getElementById("totalAdded").textContent=money(t.added);
+  document.getElementById("totalSpent").textContent=money(t.spent);
+  document.getElementById("homeMonth").textContent=monthLabel(homeMonth);
+  renderCalendar(document.getElementById("homeCalendar"),homeMonth);
+}
+function renderCalendar(el, month){
+  el.innerHTML="";
+  ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].forEach(x=>{
+    const d=document.createElement("div"); d.className="weekday"; d.textContent=x; el.appendChild(d);
+  });
+  const first=new Date(month.getFullYear(),month.getMonth(),1);
+  let offset=(first.getDay()+6)%7;
+  const days=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();
+  for(let i=0;i<offset;i++){const e=document.createElement("div");e.className="day empty";el.appendChild(e)}
+  for(let day=1;day<=days;day++){
+    const date=new Date(month.getFullYear(),month.getMonth(),day);
+    const key=iso(date);
+    const box=document.createElement("div"); box.className="day";
+    box.innerHTML=`<span class="num">${day}</span>`;
+    const tx=state.transactions.filter(t=>t.date===key);
+    if(tx.some(t=>t.type==="expense")){const dot=document.createElement("span");dot.className="dot";box.appendChild(dot)}
+    else if(tx.some(t=>t.type==="credit")){const dot=document.createElement("span");dot.className="dot credit-dot";box.appendChild(dot)}
+    box.onclick=()=>showDate(key);
+    el.appendChild(box);
+  }
+}
+function canMove(month,delta){
+  const next=new Date(month.getFullYear(),month.getMonth()+delta,1);
+  return next>=new Date(2026,7,1) && next<=new Date(2026,11,1);
+}
+function openForm(type){
+  formType=type;
+  document.getElementById("formTitle").textContent=type==="credit"?"Add Credit":"Add Expense";
+  document.getElementById("reasonLabel").textContent=type==="credit"?"Where did the money come from?":"What did you spend on?";
+  document.getElementById("reason").placeholder=type==="credit"?"e.g. Salary / Money received":"e.g. Lunch / Travel";
+  const today = new Date();
+  const defaultDate = today < START ? START : (today > END ? END : today);
+  document.getElementById("txnDate").value=iso(defaultDate);
+  document.getElementById("amount").value="";
+  document.getElementById("reason").value="";
+  document.getElementById("formModal").classList.add("show");
+}
+document.getElementById("txnForm").onsubmit=e=>{
+  e.preventDefault();
+  const amount=Number(document.getElementById("amount").value);
+  const reason=document.getElementById("reason").value.trim();
+  const date=document.getElementById("txnDate").value;
+  if(!amount||amount<=0||!reason||!inRange(date)) return;
+  state.transactions.push({id:Date.now(),type:formType,amount,reason,date});
+  saveState(); closeModal("formModal"); renderHome(); toast(formType==="credit"?"Credit added":"Expense added");
+};
+function showDate(date){
+  const tx=state.transactions.filter(t=>t.date===date).sort((a,b)=>b.id-a.id);
+  const spent=tx.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0);
+  const added=tx.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0);
+  document.getElementById("dateModalTitle").textContent=prettyDate(date);
+  document.getElementById("dateTotal").innerHTML=`<strong>Spent: ${money(spent)}</strong><br><span style="color:#16834a">Added: ${money(added)}</span>`;
+  const holder=document.getElementById("dateTransactions"); holder.innerHTML="";
+  if(!tx.length){holder.innerHTML='<div class="empty">No transactions on this date.</div>'}
+  tx.forEach(t=>{
+    const row=document.createElement("div");row.className="txn";
+    row.innerHTML=`<div class="txn-left"><span class="badge ${t.type}">${t.type==="credit"?"Credit":"Expense"}</span><div><div class="txn-reason">${escapeHtml(t.reason)}</div><div class="txn-time">${new Date(t.id).toLocaleTimeString("en-IN",{hour:"numeric",minute:"2-digit"})}</div></div></div>
+    <div><span class="${t.type==="credit"?"amount-credit":"amount-expense"}">${t.type==="credit"?"+":"−"}${money(t.amount)}</span><br><button class="delete" onclick="deleteTxn(${t.id},'${date}')">delete</button></div>`;
+    holder.appendChild(row);
+  });
+  document.getElementById("dateModal").classList.add("show");
+}
+function deleteTxn(id,date){
+  if(!confirm("Delete this transaction?")) return;
+  state.transactions=state.transactions.filter(t=>t.id!==id);saveState();showDate(date);renderHome();renderMonth();
+}
+function openMonth(){
+  modalMonth=new Date(homeMonth);
+  renderMonth();
+  document.getElementById("monthModal").classList.add("show");
+}
+function renderMonth(){
+  document.getElementById("monthModalTitle").textContent=monthLabel(modalMonth);
+  document.getElementById("monthModalName").textContent=monthLabel(modalMonth);
+  const prefix=`${modalMonth.getFullYear()}-${String(modalMonth.getMonth()+1).padStart(2,"0")}`;
+  const tx=state.transactions.filter(t=>t.date.startsWith(prefix));
+  document.getElementById("monthAdded").textContent=money(tx.filter(t=>t.type==="credit").reduce((s,t)=>s+t.amount,0));
+  document.getElementById("monthSpent").textContent=money(tx.filter(t=>t.type==="expense").reduce((s,t)=>s+t.amount,0));
+  renderCalendar(document.getElementById("monthCalendar"),modalMonth);
+  drawChart();
+}
+function drawChart(){
+  const c=document.getElementById("expenseChart"),ctx=c.getContext("2d");
+  const w=c.width=c.clientWidth*2,h=c.height=220*2;ctx.clearRect(0,0,w,h);
+  const days=new Date(modalMonth.getFullYear(),modalMonth.getMonth()+1,0).getDate();
+  const vals=[];
+  for(let d=1;d<=days;d++){
+    const key=iso(new Date(modalMonth.getFullYear(),modalMonth.getMonth(),d));
+    vals.push(state.transactions.filter(t=>t.date===key&&t.type==="expense").reduce((s,t)=>s+t.amount,0));
+  }
+  const pad={l:42,r:12,t:16,b:28},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;
+  const max=Math.max(...vals,100);
+  ctx.strokeStyle="#ddd";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(pad.l,pad.t);ctx.lineTo(pad.l,h-pad.b);ctx.lineTo(w-pad.r,h-pad.b);ctx.stroke();
+  ctx.strokeStyle="#171717";ctx.lineWidth=5;ctx.beginPath();
+  vals.forEach((v,i)=>{
+    const x=pad.l+(i/(days-1||1))*pw,y=h-pad.b-(v/max)*ph;
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  });ctx.stroke();
+  ctx.fillStyle="#777";ctx.font="20px Arial";
+  [1,Math.ceil(days/2),days].forEach(d=>{
+    const x=pad.l+((d-1)/(days-1||1))*pw;ctx.fillText(d,x-6,h-6);
+  });
+  vals.forEach((v,i)=>{
+    if(v>0){const x=pad.l+(i/(days-1||1))*pw,y=h-pad.b-(v/max)*ph;ctx.fillStyle="#c93636";ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill()}
+  });
+}
+function closeModal(id){document.getElementById(id).classList.remove("show")}
+function toast(msg){const x=document.getElementById("toast");x.textContent=msg;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
+function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+
+document.getElementById("addCredit").onclick=()=>openForm("credit");
+document.getElementById("addExpense").onclick=()=>openForm("expense");
+document.getElementById("calendarCard").onclick=e=>{if(!e.target.closest(".day")&&!e.target.closest("button"))openMonth()};
+document.getElementById("prevMonth").onclick=()=>{if(canMove(homeMonth,-1)){homeMonth=new Date(homeMonth.getFullYear(),homeMonth.getMonth()-1,1);renderHome()}};
+document.getElementById("nextMonth").onclick=()=>{if(canMove(homeMonth,1)){homeMonth=new Date(homeMonth.getFullYear(),homeMonth.getMonth()+1,1);renderHome()}};
+document.getElementById("monthPrev").onclick=()=>{if(canMove(modalMonth,-1)){modalMonth=new Date(modalMonth.getFullYear(),modalMonth.getMonth()-1,1);renderMonth()}};
+document.getElementById("monthNext").onclick=()=>{if(canMove(modalMonth,1)){modalMonth=new Date(modalMonth.getFullYear(),modalMonth.getMonth()+1,1);renderMonth()}};
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>closeModal(b.dataset.close));
+["formModal","dateModal","monthModal"].forEach(id=>document.getElementById(id).addEventListener("click",e=>{if(e.target.id===id)closeModal(id)}));
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("Delete all saved transactions from this device?")){
+    state={transactions:[]};saveState();renderHome();toast("All data cleared");
+  }
+};
+window.addEventListener("resize",()=>{if(document.getElementById("monthModal").classList.contains("show"))drawChart()});
+renderHome();
+
+
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById("installBtn");
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  installBtn.style.display = "block";
+});
+
+installBtn.onclick = async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  installBtn.style.display = "none";
+};
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  installBtn.style.display = "none";
+});
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(err => {
+      console.warn("Service worker registration failed:", err);
+    });
+  });
+}
+</script>
+</body>
+</html>
